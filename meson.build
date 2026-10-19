@@ -102,6 +102,14 @@ else
     # HACK: work around multiple definition of `llvm::getTypeName<llvm::LICMPass>()::Name`.
     add_project_link_arguments('-Wl,--allow-multiple-definition', language: 'cpp')
   endif
+
+  if static_llvm and not is_windows
+    # Keep the bundled LLVM private. Its archive objects have default visibility, so without
+    # this the plugin exports ~35k LLVM symbols and its own calls go through the PLT; once
+    # another LLVM is in the process (ROCm's libLLVM via HIP/MIGraphX) those calls bind to
+    # the other version and crash (llvm::DataLayout::operator= in JITGlobals::get()).
+    add_project_link_arguments('-Wl,--exclude-libs,ALL', '-Wl,-Bsymbolic-functions', language: 'cpp')
+  endif
 endif
 
 if boost_charconv
